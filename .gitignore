@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+.notebooks_cache/
+
+# Data (no subir datos sensibles)
+data/raw/*
+data/interim/*
+data/external/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/external/.gitkeep
+
+# Reports
+reports/figures/*
+!reports/figures/.gitkeep
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+
+# Data processed (no subir)
+data/processed/*
+!data/processed/.gitkeep
+
+# Cualquier otro env file
+*.env
