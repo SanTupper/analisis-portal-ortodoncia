@@ -7,16 +7,46 @@ def cargar_clientes(path:str) -> pd.DataFrame:
     return pd.read_csv(path, low_memory=False)
 
 def crear_kpis_pptos(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    # Evitar división por cero
-    df['TicketPromPpto'] = np.where(df['CantPptos']>0, df['TotPptos']/df['CantPptos'], np.nan)
-    # Cumplimiento: promedio simple de % abonados y % avanzados (ajustable)
-    pct_abo = np.where(df['CantPptos']>0, df['CantPptosAbo']/df['CantPptos'], np.nan)
-    pct_avan = np.where(df['CantPptos']>0, df['CantPptosAvan']/df['CantPptos'], np.nan)
-    df['PctCumplimiento'] = np.nanmean(np.vstack([pct_abo, pct_avan]), axis=0)
-    # Monto abonado promedio
-    df['MontoAbonadoProm'] = np.where(df['CantPptosAbo']>0, df['TotPptosAbo']/df['CantPptosAbo'], np.nan)
-    return df
+    out = df.copy()
+
+    # Asegurar numérico
+    cols = ['CantPptos', 'TotPptos', 'CantPptosAbo', 'TotPptosAbo', 'CantPptosAvan', 'TotPptosAvan']
+    for c in cols:
+        if c in out.columns:
+            out[c] = pd.to_numeric(out[c], errors='coerce')
+
+    # Ticket promedio de ppto (si hay >0 presupuestos)
+    out['TicketPromPpto'] = np.where(
+        out.get('CantPptos', 0) > 0,
+        out.get('TotPptos', np.nan) / out.get('CantPptos', np.nan),
+        np.nan
+    )
+
+    # % de presupuestos abonados / avanzados (respecto del total de pptos)
+    out['PctPptosAbonados'] = np.where(
+        out.get('CantPptos', 0) > 0,
+        out.get('CantPptosAbo', np.nan) / out.get('CantPptos', np.nan),
+        np.nan
+    )
+    out['PctPptosAvanzados'] = np.where(
+        out.get('CantPptos', 0) > 0,
+        out.get('CantPptosAvan', np.nan) / out.get('CantPptos', np.nan),
+        np.nan
+    )
+
+    # %Cumplimiento = promedio de los dos porcentajes (si ambos NaN, queda NaN)
+    out['PctCumplimiento'] = out[['PctPptosAbonados', 'PctPptosAvanzados']].mean(axis=1, skipna=True)
+    mask_ambos_nan = out[['PctPptosAbonados', 'PctPptosAvanzados']].isna().all(axis=1)
+    out.loc[mask_ambos_nan, 'PctCumplimiento'] = np.nan
+
+    # Monto abonado promedio (si hay >0 abonados)
+    out['MontoAbonadoProm'] = np.where(
+        out.get('CantPptosAbo', 0) > 0,
+        out.get('TotPptosAbo', np.nan) / out.get('CantPptosAbo', np.nan),
+        np.nan
+    )
+
+    return out
 
 def unificar_cobertura_salud(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
