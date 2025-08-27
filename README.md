@@ -80,7 +80,8 @@ Atención: uso de presencia (0/1) en ventanas 15d, 1m, 3m, 6m.
 
 Geografía: Comuna_grp (Top-N + “Otras/Infreq” + “Sin Comuna”) y Region con one-hot.
 
-Empresa/Convenio: flags y dummies Top-N; análisis con y sin para comparar impacto en clustering.
+**Comparativa en NB-03:** se evaluarán **dos variantes de clustering** (baseline sin Empresa vs **con Empresa/Convenio**) para decidir si su inclusión mejora separación/estabilidad e interpretabilidad.
+
 
 📚 Documentación
 Overview y bitácora (Notion):
