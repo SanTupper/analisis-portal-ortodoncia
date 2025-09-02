@@ -3,15 +3,18 @@
 Proyecto de portafolio para segmentación de pacientes de clínicas dentales usando **clustering**.  
 El enfoque prioriza **reproducibilidad**, **interpretabilidad** y **privacidad** (no se suben datos reales al repositorio).
 
-🎯 Objetivos
+---
 
-Preparar y estandarizar datos (fechas, KPIs de presupuestos, ventanas de atención, geografía).
+## 🎯 Objetivos
+- Preparar y estandarizar datos (fechas, KPIs de presupuestos, ventanas de atención, geografía).  
+- Entrenar y evaluar un **clustering interpretable** de pacientes **activos** (≤ 2 años sin visita).  
+- Generar **insights accionables** (ej. abandono latente, alta frecuencia, pacientes fantasma).  
 
-Entrenar y evaluar un clustering interpretable de pacientes activos (≤ 2 años sin visita).
+---
 
-Generar insights accionables (ej. abandono latente, alta frecuencia, pacientes fantasma).
+## 🗂️ Estructura del repo
 
-🗂️ Estructura del repo
+```text
 analisis-portal-ortodoncia/
 ├─ notebooks/
 │  ├─ 01_exploracion_tab_clientes.ipynb
