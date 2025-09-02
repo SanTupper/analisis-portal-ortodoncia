@@ -3,14 +3,15 @@
 Proyecto de portafolio para segmentación de pacientes de clínicas dentales usando **clustering**.  
 El enfoque prioriza **reproducibilidad**, **interpretabilidad** y **privacidad** (no se suben datos reales al repositorio).
 
-## 🎯 Objetivos
-- Preparar y estandarizar datos (fechas, KPIs de presupuestos, ventanas de atención, geografía).
-- Entrenar y evaluar un **clustering interpretable** de pacientes **activos** (≤ 2 años sin visita).
-- Generar **insights accionables** (p. ej., inactivos de alto potencial, frecuentes con baja conversión).
+🎯 Objetivos
 
-## 🗂️ Estructura del repo
+Preparar y estandarizar datos (fechas, KPIs de presupuestos, ventanas de atención, geografía).
 
-```text
+Entrenar y evaluar un clustering interpretable de pacientes activos (≤ 2 años sin visita).
+
+Generar insights accionables (ej. abandono latente, alta frecuencia, pacientes fantasma).
+
+🗂️ Estructura del repo
 analisis-portal-ortodoncia/
 ├─ notebooks/
 │  ├─ 01_exploracion_tab_clientes.ipynb
@@ -32,24 +33,33 @@ analisis-portal-ortodoncia/
 ├─ .gitignore
 └─ README.md
 
+📒 Notebooks y flujo
 
-## 📒 Notebooks y flujo
-1) **01_exploracion_tab_clientes** — Exploración inicial, fechas (histórico vs planificación), validación de `DiasDesdeUltimaVisita` (offset +11 días), geografía preliminar.  
-2) **02_preparacion_features_activos** — KPIs de presupuestos (log1p, salvaguardas), presencias 15d/1m/3m/6m, geografía (Comuna\_grp/Región) y Empresa/Convenio → **activos ≤ 730 días**.  
-3) **03_modelado_clustering_activos** — Baseline de clustering (estandarización, k por codo/silhouette). *(en progreso)*  
-4) **04_perfilado_clusters_y_insights** — Perfiles e insights por clúster. *(pendiente)*  
-5) **05_validacion_vs_pbi** — Cruces/consistencia vs métricas del dashboard interno.  
-6) **06_prestaciones_validacion** — Validación por **cohortes** con Prestaciones (ppto vs pago mismo año) + QA de reglas.
+01_exploracion_tab_clientes — Exploración inicial, fechas (histórico vs planificación), validación de DiasDesdeUltimaVisita (offset +11 días), geografía preliminar.
 
-## 🚀 Cómo ejecutar
-1. **Python 3.11** (recomendado)  
-2. Crear entorno e instalar dependencias:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate      # macOS/Linux
-   pip install -r requirements.txt
+02_preparacion_features_activos — KPIs de presupuestos (log1p, salvaguardas), presencias 15d/1m/3m/6m, geografía (Comuna_grp/Región) y Empresa/Convenio → activos ≤ 730 días.
+
+03_modelado_clustering_activos — Estandarización (pipeline mixto), barrido K=2..10, selección de K=3, entrenamiento final y perfiles de clusters.
+
+04_perfilado_clusters_y_insights — Perfiles extendidos e insights de negocio (en progreso).
+
+05_validacion_vs_pbi — Cruces/consistencia vs métricas del dashboard interno.
+
+06_prestaciones_validacion — Validación por cohortes con Prestaciones (ppto vs pago mismo año) + QA de reglas.
+
+🚀 Cómo ejecutar
+
+Python 3.11 (recomendado).
+
+Crear entorno e instalar dependencias:
+
+python3 -m venv .venv
+source .venv/bin/activate      # macOS/Linux
+pip install -r requirements.txt
+
+
 Datos locales (no públicos)
-Coloca en data/raw/:
+Colocar en data/raw/:
 
 Tab_Clientes(2).csv
 
@@ -60,27 +70,55 @@ Orden sugerido de ejecución
 
 NB-01 → NB-02 → (opcional: NB-06, NB-05) → NB-03 → NB-04
 
-Salidas locales clave (se regeneran al correr notebooks)
+📦 Salidas locales clave (regeneradas al correr notebooks)
 
-data/processed/activos_for_model_v2.csv — matriz X para clustering
+NB-02:
 
-data/processed/activos_ids_v2_plus.csv — IDs para re-enganchar labels (RutBeneficiario, RutTitular, #beneficiarios)
+data/processed/activos_for_model_v2.csv — matriz baseline sin Empresa.
 
-Privacidad: data/ está en .gitignore. Este repositorio no incluye datos reales.
+data/processed/activos_for_model_v2_empresa.csv — matriz con Empresa/Convenio.
+
+data/processed/activos_ids_v2_plus.csv — IDs (RutBeneficiario, RutTitular, #beneficiarios).
+
+NB-03:
+
+data/processed/activos_ids_v2_plus_clustered.csv — IDs + etiquetas de cluster.
+
+data/processed/cluster_profiles_baseline.csv — perfiles de clusters (medianas, baseline).
+
+data/processed/cluster_profiles_con_empresa.csv — perfiles (con Empresa).
+
+data/processed/clusters_centroids_baseline.csv — centroides (baseline, técnico).
+
+data/processed/clusters_centroids_con_empresa.csv — centroides (con Empresa, técnico).
+
+⚠️ data/ está en .gitignore: este repositorio no incluye datos reales.
 
 🧩 Decisiones principales (resumen)
 
-Fechas: histórico en ISO; planificación en DD/MM/AAAA. Parseo a datetime con flags de planificación.
+Fechas: histórico en ISO; planificación en DD/MM/AAAA. Flags de planificación incluidos.
 
-DiasDesdeUltimaVisita: se usa el valor del sistema (offset documental +11 días frente a recálculo).
+DiasDesdeUltimaVisita: se usa el valor del sistema (offset +11 días frente a recálculo).
 
-Presupuestos: montos con log1p; KPIs con salvaguardas; NaN → 0 sólo para el modelo.
+Presupuestos: montos con log1p; KPIs con salvaguardas; NaN → 0 solo para el modelo.
 
-Atención: uso de presencia (0/1) en ventanas 15d, 1m, 3m, 6m.
+Atención: presencias en ventanas 15d, 1m, 3m, 6m.
 
-Geografía: Comuna_grp (Top-N + “Otras/Infreq” + “Sin Comuna”) y Region con one-hot.
+Geografía: Comuna_grp (Top-N + Otras/Infreq + Sin Comuna) y Region (one-hot).
 
-**Comparativa en NB-03:** se evaluarán **dos variantes de clustering** (baseline sin Empresa vs **con Empresa/Convenio**) para decidir si su inclusión mejora separación/estabilidad e interpretabilidad.
+Escalado: pipeline mixto (Standard para Edad, Robust para montos/conteos, passthrough para %Cumplimiento).
+
+Clustering: K=3 elegido por equilibrio entre codo (SSE) y silhouette.
+
+Comparativa A/B: incluir Empresa/Convenio no cambió resultados → baseline suficiente.
+
+Insights clave:
+
+Cluster 0: abandono latente.
+
+Cluster 1: jóvenes activos, alta conversión.
+
+Cluster 2: inactivos/fantasma.
 
 
 📚 Documentación
