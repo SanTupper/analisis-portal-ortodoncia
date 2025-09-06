@@ -1,0 +1,6 @@
+﻿Metrica,Dashboard (≈jul/2025),Clustering (jun/2025),Comentario / Valor agregado
+Pacientes activos,14500 aprox,14141,La diferencia se explica porque el corte de datos es un mes anterior
+% con atención en 6m,40–45%,Cluster 0: 40% | Cluster 1: 60% | Cluster 2: 30%,"El promedio ponderado ≈43%, consistente con dashboard. Se identifica qué grupos sostienen esas tasas"
+% Cumplimiento,≈70% global,Cluster 0: 67% | Cluster 1: 80% | Cluster 2: 0%,El promedio ponderado ≈70%. Se distingue quiénes cumplen más (jóvenes del Cluster 1)
+Distribución geográfica (RM),≈95% RM / 5% otras,"Cluster 0: 97,5% RM | Cluster 1: 98,3% RM | Cluster 2: 61% RM",Consistente con el global. El cluster 2 explica la dispersión fuera de RM
+Empresa/Convenio,Fonasa mayoritario / Isapres 20–25%,"Cluster 0: Fonasa 75%, Isapres 9% | Cluster 1: Fonasa 69%, Isapres 26% | Cluster 2: mezcla atípica",Consistente en global. Se revela perfil socioeconómico por cluster

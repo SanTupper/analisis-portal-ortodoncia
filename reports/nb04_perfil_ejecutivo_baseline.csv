@@ -1,0 +1,4 @@
+cluster_baseline,Pacientes,Edad (mediana),Presupuestos (mediana),"Monto total (log1p, mediana)",% Cumplimiento (mediana),Presencia 6m (%),Presencia 3m (%)
+0,10613,35.0,1.0,13.315,0.667,40.2,26.3
+1,3216,26.0,5.0,14.203,0.8,59.8,48.9
+2,312,38.0,1.0,0.0,0.0,29.8,19.9

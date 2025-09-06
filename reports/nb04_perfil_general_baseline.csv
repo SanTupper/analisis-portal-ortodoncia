@@ -1,0 +1,4 @@
+cluster_baseline,n_pacientes,CantPptosAbo_mediana,CantPptosAvan_mediana,CantPptos_mediana,Edad_mediana,PctCumplimiento_mediana,TicketPromPpto_l1p_mediana,TotPptosAbo_l1p_mediana,TotPptosAvan_l1p_mediana,TotPptos_l1p_mediana,CantPptosAbo_media,CantPptosAvan_media,CantPptos_media,Edad_media,PctCumplimiento_media,TicketPromPpto_l1p_media,TotPptosAbo_l1p_media,TotPptosAvan_l1p_media,TotPptos_l1p_media,Atencion15d_pres_tasa,Atencion1m_pres_tasa,Atencion3m_pres_tasa,Atencion6m_pres_tasa
+0,10613,1.0,1.0,1.0,35.0,0.667,12.773,9.909,9.893,13.315,0.979,0.974,1.698,37.046,0.629,12.666,8.598,8.554,13.079,0.066,0.134,0.263,0.402
+1,3216,4.0,4.0,5.0,26.0,0.8,12.546,13.92,13.911,14.203,4.297,4.285,5.582,29.192,0.801,12.551,13.82,13.809,14.202,0.149,0.304,0.489,0.598
+2,312,0.0,0.0,1.0,38.0,0.0,0.0,0.0,0.0,0.0,0.006,0.0,1.048,39.952,0.002,0.0,0.069,0.0,0.0,0.035,0.083,0.199,0.298
