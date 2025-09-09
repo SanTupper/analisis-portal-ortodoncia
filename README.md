@@ -125,7 +125,7 @@ reports/entregables/Guía de Mejora de Datos — Portal Ortodoncia.pdf — propu
 
 
 ⚠️ **Privacidad**: data/ está en .gitignore. Este repositorio no incluye datos reales.
-ℹ️ La carpeta reports/ sí se versiona (reportes ejecutivos sin PII).
+ℹ️ ***La carpeta reports/ sí se versiona (reportes ejecutivos sin PII).***
 
 ### 🧩 Decisiones principales (resumen)
 
