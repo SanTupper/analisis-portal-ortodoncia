@@ -1,226 +1,214 @@
 # Playbook Global · Análisis Portal Ortodoncia
 
-**Última actualización:** 09-sep-2025  
-**Autor:** Santiago Tupper  
-**Objetivo del documento:** explicar, de punta a punta, el proceso de análisis y segmentación de pacientes del Portal de Ortodoncia, en un lenguaje claro para negocio y con el suficiente detalle técnico para equipos de datos.
-
 ---
 
-## 0) Cómo leer este documento
-- **Capítulos 1–3**: contexto y datos (ideal para managers y reclutadores no técnicos).
-- **Capítulos 4–6**: modelado, perfilado y validación (para analistas/DS).
-- **Capítulo 7**: aplicaciones de negocio (para directores comerciales/marketing).
-- **Capítulo 8**: visualizaciones (roadmap).
-- **Capítulos 9–10**: lecciones y siguientes pasos (para todos).
+![Data and Cluster Analysis Tairred to mpead of wpicigglthis Presentatior Intrication for Dental Clinic.png](attachment:6bb35dab-b6e3-4a73-b6e4-79ce75b1b1db:Data_and_Cluster_Analysis_Tairred_to_mpead_of_wpicigglthis_Presentatior_Intrication_for_Dental_Clinic.png)
 
 ---
 
 ## 1) Introducción
 
-### 1.1 Contexto del proyecto
-Portal Ortodoncia gestiona una base amplia de pacientes con diferentes niveles de actividad y recurrencia. El **problema de negocio**: identificar **segmentos accionables** para **reactivación** (quienes no han vuelto) y **conversión** (quienes tienen potencial de compra/seguimiento), optimizando comunicación y promociones.
+Portal Ortodoncia reúne una amplia base de pacientes con distintos niveles de actividad. El desafío que nos planteamos fue simple pero potente: **¿cómo podemos identificar grupos de pacientes para reactivarlos y acompañarlos mejor en sus tratamientos?**
 
-### 1.2 Objetivos
-- **Segmentar** pacientes activos y relacionados en grupos con comportamientos distinguibles.
-- **Priorizar** oportunidades de reactivación y cross-selling.
-- **Entregar** una guía reproducible (este playbook) + artefactos técnicos (notebooks/código).
+En otras palabras, queríamos pasar de mirar a los pacientes como un “todo” a entenderlos como **segmentos con comportamientos y necesidades distintas**.
 
-### 1.3 Mapa de notebooks (NB)
-- **NB-01**: EDA inicial y criterios de calidad de datos.  
-- **NB-02**: Preparación y limpieza; dataset modelable.  
-- **NB-03**: Modelado de clustering (KMeans; K=2..10; métricas elbow/silhouette).  
-- **NB-04**: Perfilado de clusters e insights.  
-- **NB-05**: Validación con archivo .pbix (consistencia vs. métricas de negocio).  
-- **NB-06**: Validación con Prestaciones y checks adicionales.
-
-> Nota: La **guía de mejora `.md`** ya está en _entregables_ del repo; **Data Quality** está documentado en Notion y se subirá al repo más adelante.
+👉 Este playbook es el recorrido de ese análisis: desde los datos en bruto hasta los insights de negocio.
 
 ---
 
-## 2) Data Journey
+## 2) El viaje de los datos
 
-### 2.1 Fuentes de datos (principales)
-- `Tab_Clientes(2).csv`: atributos de pacientes (edad, actividad, convenios/empresa, etc.).
-- `activos_for_model_v2.csv` + variantes (`_empresa`, `_ids`): conjunto preparado para modelado (features depuradas; flags y dummies).
-- Tablas auxiliares del ecosistema (p. ej., Prestaciones, Clínicas) para validación cruzada.
+Trabajamos con varias fuentes internas, siendo la principal el **archivo de clientes**. Allí teníamos información como: edad, montos de presupuestos, recencia de visitas, convenios con empresas, etc.
 
-### 2.2 Criterios de preparación y limpieza
-- **Filtrado de activos**: pacientes con >0 en alguna métrica de **presupuesto (ppto)** y/o **presencia** en ventanas de atención (15d, 1m, 3m, 6m).  
-- **Tratamiento de nulos**: imputación conservadora o exclusión según criticidad de la variable.  
-- **Variables categóricas**:  
-  - `TieneEmpresa`, `EsConvenio` como **flags binarios**.  
-  - Dummies Top-N por **Empresa** (`Empresa_grp_*`) para contrastar **con y sin** efecto empresa.  
-- **Reducción de dimensionalidad (si aplica)**: eliminación de colinealidad/redundancias según evaluación en NB-02.
+Para construir un dataset sólido, aplicamos filtros básicos:
 
-### 2.3 Dataset final de modelado (vista)
-- Numéricas clave (ejemplos):  
-  - **Actividad**: `CantPptos`, `CantPptosAbo`, `CantPptosAvan`, `TotPptos_l1p`, `TicketPromPpto_l1p`.  
-  - **Recencia/presencia**: `Atencion15d_pres`, `Atencion1m_pres`, `Atencion3m_pres`, `Atencion6m_pres`.  
-  - **Desempeño**: `PctCumplimiento`.  
-  - **Demografía**: `Edad`.  
-- Categóricas transformadas: `TieneEmpresa`, `EsConvenio`, dummies `Empresa_grp_*`.  
-- **Versión con y sin dummies de Empresa** para comparar impacto en clustering.
+- Solo pacientes con **alguna actividad registrada** en presupuestos o atenciones recientes.
+- Variables limpias, sin duplicados ni ruido excesivo.
+- Transformación de categorías (por ejemplo, si un paciente pertenecía a una empresa, lo convertimos en un indicador).
+
+El resultado fue un conjunto de datos listo para analizar, equilibrado entre lo clínico y lo comercial.
+
+![Captura de pantalla 2025-09-12 a la(s) 15.46.18.png](attachment:aa50aae4-2a03-4090-956a-287651b44e3e:Captura_de_pantalla_2025-09-12_a_la(s)_15.46.18.png)
 
 ---
 
-## 3) EDA (Exploratory Data Analysis)
+## 3) Explorando los datos (EDA)
 
-### 3.1 Preguntas guía
-- ¿Cómo se distribuye la **recencia** de atención (15d/1m/3m/6m)?
-- ¿Qué tan concentrado está el **ticket promedio**?
-- ¿Cuál es el peso real de **Empresa/Convenio** en el comportamiento?
+Antes de modelar, exploramos para entender la “personalidad” de los pacientes.
 
-### 3.2 Hallazgos iniciales (resumen)
-- Distribuciones **asimétricas** en montos y tickets → sugieren **RobustScaler** como opción sólida.
-- Diferencias claras entre pacientes con **Empresa/Convenio** vs. individuos: mayor frecuencia de contacto y montos en algunos subgrupos.
-- Recencia (1–3 meses) correlaciona con mayor probabilidad de actividad reciente.
+Algunas observaciones clave:
 
-### 3.3 Decisiones a partir del EDA
-- Preparar dos pipelines:  
-  **A)** _Baseline_ sin dummies de Empresa; **B)** con dummies Top-N para medir variación en la segmentación.  
-- Probar **StandardScaler vs RobustScaler** y seleccionar por estabilidad de clusters e interpretabilidad.
+- La **edad** está distribuida de manera bastante amplia, con grupos jóvenes y adultos mayores.
+- El **ticket promedio** varía mucho: algunos pacientes concentran montos altos, pero la mayoría tiene valores modestos.
+- La **recencia de atención** (visitas en 15 días, 1 mes, 3 meses) muestra que muchos pacientes tienen largos periodos sin regresar.
 
----
+👉 Esta exploración fue la base para decidir cómo escalar los datos y qué variables usar en los grupos.
 
-## 4) Modelado (Clustering)
+![eda_hist_edad.png](attachment:81009cb8-f8eb-4e53-a4d1-4bdd75102531:eda_hist_edad.png)
 
-### 4.1 Selección de features
-- Núcleo: **Actividad + Recencia + Ticket**.  
-- Variantes: **+ Empresa/Convenio** (flags/dummies) para sensibilidad.  
-- Exclusión de variables que inducen **data leakage** o duplicidad.
+*Refleja la concentración de pacientes en rangos etarios medios, clave para segmentar la comunicación.*
 
-### 4.2 Escalado
-- **Comparativa**:  
-  - `StandardScaler` para magnitudes “normales”.  
-  - `RobustScaler` para outliers.  
-- **Criterio**: retener el que dé **mejor cohesión** (baja SSE), **separación** (silhouette) y **estabilidad** (consistencia al re-fit).
+![eda_box_ticket.png](attachment:bbd45645-3524-44ea-9555-241d31754848:eda_box_ticket.png)
 
-### 4.3 Selección de K
-- Rango evaluado: **K = 2..10**.  
-- **Métodos**:  
-  - **Elbow (SSE)** para saturación marginal.  
-  - **Silhouette** para separación entre clusters.  
-- **Regla práctica**: elegir el **K mínimo** que logre buena separación **y** que siga siendo interpretable para negocio.
+*Muestra la dispersión del gasto por paciente, con valores extremos que elevan el promedio.*
 
-### 4.4 Entrenamiento
-- Algoritmo: **K-Means** (seed fija para reproducibilidad).  
-- Entrenamientos por **escenario**:  
-  - **Escenario A**: sin Empresa.  
-  - **Escenario B**: con dummies de Empresa.  
-- Guardamos: escalador, modelo, métricas, asignaciones y centroides.
+![eda_barras_recencia.png](attachment:0f0ba9df-635b-4b48-a63e-b205523471cf:eda_barras_recencia.png)
+
+*Evidencia cuántos pacientes llevan meses sin visitar la clínica, mostrando oportunidades de reactivación.*
 
 ---
 
-## 5) Perfilado de Clusters
+## 4) Construyendo los grupos (Clustering)
 
-### 5.1 Metodología
-- Para cada cluster:  
-  - Medianas/medias por variable clave.  
-  - % con atención 1m/3m/6m.  
-  - Distribución de ticket.  
-  - Presencia de Empresa/Convenio (si aplica).  
-- **Naming**: etiquetas **cortas y memorables** (ej. “Recurrentes-Alto Ticket”, “Dormidos-Bajo Ticket”, “Nuevos-Promesa”).
+El corazón del análisis fue aplicar un algoritmo de clustering. La idea: **dejar que los datos nos digan qué grupos existen** sin imponer categorías previas.
 
-### 5.2 Ejemplos de insights (genéricos; ajustar con cifras del NB-04)
-- **Cluster 0 – Recurrentes-Alto Ticket**: alta presencia en 1m/3m, ticket elevado; candidatos a **programas de fidelización premium**.  
-- **Cluster 1 – Dormidos-Bajo Ticket**: baja recencia, montos pequeños; foco en **reactivación con incentivos**.  
-- **Cluster 2 – Ocasionales-Medio Ticket**: actividad intermitente; activar **recordatorios** y **packs**.  
+Para decidir cuántos grupos usar, probamos distintas opciones y analizamos cuál daba la mejor separación y coherencia. Finalmente, elegimos un número de clusters que equilibraba simplicidad con riqueza de insights.
 
-### 5.3 Efecto Empresa/Convenio
-- Comparar el **mix de clusters** entre escenarios 0 y 1 para cuantificar cuánto “explica” pertenecer a Empresa versus comportamiento idiosincrático del paciente.
+![modelo_codo_silhouette.png](attachment:8fcad00b-ed8d-4574-a60e-018fdb76f32b:modelo_codo_silhouette.png)
+
+*Permite determinar la cantidad óptima de clusters, combinando criterio geométrico y calidad de segmentación.*
 
 ---
 
-## 6) Validación
+## 5) Conociendo a nuestros clusters
 
-### 6.1 Con archivo .pbix (NB-05)
-- **Chequeos**:  
-  - Totales y conteos (ej. total de pacientes ≈ 9.103 en .pbix vs. dataset de modelado).  
-  - Consistencia de segmentos por clínica/periodo.  
-- **Resultado esperado**: diferencias menores y explicables por filtros/fechas.
+Aquí es donde el proyecto cobra vida: traducimos números en **perfiles de pacientes**.
 
-### 6.2 Con Prestaciones (NB-06)
-- **Cruces** con tipos de prestaciones y frecuencia:  
-  - ¿Cada cluster consume cierto **mix** de prestaciones?  
-  - ¿Existen prestaciones “gatillo” de reactivación?  
-- **Objetivo**: validar que los clusters reflejen **comportamientos clínicos reales** y no artefactos de modelado.
+Ejemplos de lo que encontramos:
 
-### 6.3 Limitaciones
-- Posible **sesgo temporal** si los periodos comparados no alinean.  
-- Calidad de registro en campos categóricos (Empresa/Convenio) heterogénea.  
-- El número de clusters es una aproximación; existe **no unicidad** de soluciones.
+- **Recurrentes – Alto Ticket**: pacientes que vienen seguido y generan montos altos. Ideales para programas de fidelización premium.
+- **Dormidos – Bajo Ticket**: llevan tiempo sin venir, con montos bajos. Claros candidatos a campañas de reactivación con incentivos.
+- **Ocasionales – Ticket Medio**: pacientes intermitentes, que necesitan recordatorios y paquetes que fomenten continuidad.
 
----
+Cada cluster tiene su propia historia y nos permite diseñar estrategias personalizadas.
 
-## 7) Aplicaciones de Negocio
+![Captura de pantalla 2025-09-14 a la(s) 16.23.47.png](attachment:6ef640ba-cf82-414a-a4d7-c316c95d76e1:Captura_de_pantalla_2025-09-14_a_la(s)_16.23.47.png)
 
-### 7.1 Reactivación
-- **Dormidos-Bajo Ticket**: campañas con **descuento inicial** + **recordatorios multicanal** (WhatsApp/SMS/email) + fácil scheduling.  
-- **Ocasionales**: **packs** con ahorro por frecuencia; mensajes de “continuidad de tratamiento”.
+*Resume las principales variables promedio de cada cluster, funcionando como perfil ejecutivo.*
 
-### 7.2 Fidelización / Up-sell
-- **Recurrentes-Alto Ticket**: **membresías** con beneficios, recordatorios preventivos, chequeos estéticos complementarios.
+![perfilado_clusters_barras.png](attachment:ce7409c4-cc5e-432e-815f-ac02f710af1f:perfilado_clusters_barras.png)
 
-### 7.3 Operación
-- **Priorizar llamadas** según cluster y probabilidad de retorno.  
-- Ajustar **KPIs** por segmento (tasa de reactivación 30d/60d, ticket medio por cluster, costo de contacto por retorno).
+*Destaca cómo difieren los clusters en variables clave, facilitando la interpretación práctica.*
+
+![perfilado_clusters_radar.png](attachment:b33bee21-b1d2-4686-bcdf-d41c36e62396:perfilado_clusters_radar.png)
+
+*Visualiza de forma comparativa las fortalezas y debilidades de cada cluster en múltiples dimensiones.*
 
 ---
 
-## 8) Visualizaciones (pendiente / en desarrollo)
+## 6) Validando que los grupos tengan sentido
 
-### 8.1 Roadmap de dashboards
-- **Power BI**: perfilado por cluster, desglose por clínica y ventana temporal; validación vs PBI oficial.  
-- **Tableau Public**: storytelling para portafolio (segmentos, recencia, ticket, mapa de clínicas).  
-- **GitHub Pages** (opcional): visualizaciones en HTML (Plotly/Altair) para acceso abierto.
+No queríamos que los clusters fueran solo un resultado matemático. Por eso, los validamos contra otras fuentes:
 
-> Cuando el primer dashboard esté listo, se añadirá aquí el **enlace público** y capturas.
+- **Power BI**: chequeamos que los totales y distribuciones coincidieran con los reportes oficiales de la clínica.
+- **Prestaciones**: revisamos si ciertos clusters consumían tipos específicos de tratamientos.
 
----
-
-## 9) Lecciones Aprendidas
-
-### 9.1 Técnicas
-- **RobustScaler** suele estabilizar mejor con outliers en montos/tickets.  
-- Trabajar **con y sin dummies de Empresa** ayuda a separar **efecto contractual** de **comportamiento real**.  
-- Mantener **seed fija** y registrar **versiones de datos** mejora reproducibilidad.
-
-### 9.2 De proceso
-- Documentar criterios de **“quién es activo”** evitó confusiones posteriores.  
-- Notion para storytelling + GitHub para código es una **combinación ganadora** para audiencias mixtas.
+El resultado fue consistente: los grupos reflejaban **patrones reales de comportamiento clínico**.
 
 ---
 
-## 10) Próximos Pasos
+### 📊 Validación con Power BI
 
-1) **Publicar** el primer dashboard (PBI o Tableau) con visualizaciones del perfilado.  
-2) **Experimentos**:  
-   - Modelos de **propensión a retorno** (logística, árboles).  
-   - **Uplift modeling** para campañas.  
-3) **Automatización**:  
-   - Pipeline reproducible (ETL → features → clustering → reporte).  
-   - Programar **actualizaciones mensuales**.  
-4) **Data Quality**: subir al repo la sección detallada de DQ hoy en Notion.
+Para asegurar consistencia global:
 
----
+- Total de pacientes: Dashboard (≈14.500) vs. Clustering (14.141).
+- Diferencias mínimas explicadas por corte temporal (PBI incluye un mes posterior).
+- % con atención en 6m, % cumplimiento y % RM ≈ idénticos en ambos.
 
-### Apéndice A · Convenciones y repositorio
-- **Estructura sugerida**  
-```
-/data
-/raw
-/interim
-/processed
-/notebooks
-/src
-/docs
-playbook_global.md
-````
-- **Versionado**: ramas por NB o feature; PRs con checklist (datos, métricas, reproducibilidad).
-- **Privacidad**: anonimizar IDs si el repositorio es público.
+**Evidencias visuales:**
+
+![7d75d92c-d19f-4560-adaf-52b122b41977.JPG](attachment:e50272e6-9f76-4eb7-ae2e-4eab08950812:7d75d92c-d19f-4560-adaf-52b122b41977.jpg)
+
+*Muestra los indicadores globales oficiales de la clínica para validar los resultados del clustering.*
+
+![dashboard_vs_clustering.png](attachment:d001ff26-0b7b-4e03-b23b-7eb4f082564b:dashboard_vs_clustering.png)
+
+*Confirma la consistencia entre métricas globales del clustering y el dashboard interno.*
+
+![validacion_dashboard_vs_clustering.png](attachment:3a9380ec-a418-4edd-afbc-7e84b0986a1f:validacion_dashboard_vs_clustering.png)
+
+*Contrasta visualmente los promedios del clustering con los del dashboard para validar diferencias menores.*
 
 ---
 
-**Créditos & contacto**  
-- Proyecto liderado por **Santiago Tupper**.  
-- Feedback y colaboraciones: abrir un **Issue** en el repo o contactar por LinkedIn/Email.
+### 🦷 Validación con Prestaciones
+
+Analizamos el cruce entre clusters y tipos de prestaciones:
+
+- Cada cluster consume combinaciones distintas de tratamientos.
+- Ejemplo: Cluster 1 concentra prestaciones de seguimiento, Cluster 2 explica mayor dispersión fuera de RM.
+- Esto confirma que los clusters reflejan **patrones clínicos reales**, no solo artefactos del modelado.
+
+**Evidencias visuales:**
+
+![Captura de pantalla 2025-09-14 a la(s) 15.51.14.png](attachment:34bc34a6-a27e-4810-9396-319198e13da9:Captura_de_pantalla_2025-09-14_a_la(s)_15.51.14.png)
+
+![nb06_cluster_conversion_abs_fixed.png](attachment:c33da84f-f5a7-4d10-92e2-561ba2622bdc:nb06_cluster_conversion_abs_fixed.png)
+
+*Comparación de pacientes con presupuesto, pago y ambos en 2025, desglosados por cluster.*
+
+![nb06_cluster_conversion_rate_fixed.png](attachment:bfae8499-1191-4e6a-a3e3-d5fa0742e391:nb06_cluster_conversion_rate_fixed.png)
+
+*Tasa de conversión (pacientes con presupuesto que terminaron pagando) por cluster.*
+
+![nb06_cluster_prestaciones_heatmap_fixed.png](attachment:804a0cd5-e81b-47b1-8538-5543e51e1677:nb06_cluster_prestaciones_heatmap_fixed.png)
+
+*Distribución porcentual de las principales prestaciones dentro de cada cluster (heatmap).*
+
+![nb06_cluster_prestaciones_stacked.png](attachment:6d99b891-0faa-4dd7-9364-a1d961dbca79:nb06_cluster_prestaciones_stacked.png)
+
+*Mix de las 10 prestaciones más frecuentes, representado en porcentajes con barras apiladas por cluster.*
+
+---
+
+## 7) Aplicaciones prácticas para la clínica
+
+Los insights no se quedan en teoría: abren la puerta a estrategias concretas.
+
+- **Reactivar pacientes dormidos** con campañas simples por WhatsApp o SMS, ofreciendo descuentos de bienvenida.
+- **Fidelizar a los recurrentes** con membresías o chequeos estéticos adicionales.
+- **Optimizar la operación** priorizando llamadas y esfuerzos comerciales en segmentos de mayor retorno.
+- **Revisar y depurar datos** para tener una base consistente.
+    
+    ![Segmentación de Pacientes W APLICACIONES PRÁCTICAS PARA LA CLÍNICA.png](attachment:24cb8d37-8006-4b54-a394-1e98f5d8035b:Segmentacion_de_Pacientes_W_APLICACIONES_PRACTICAS_PARA_LA_CLINICA.png)
+    
+
+---
+
+## 8) Lecciones aprendidas
+
+El proyecto dejó aprendizajes valiosos tanto técnicos como de gestión del proceso:
+
+- **Metodología técnica**
+    - Los outliers distorsionan resultados si no se controlan: usar **escaladores robustos** y validar siempre las transformaciones es esencial.
+    - Separar escenarios **con y sin convenios empresariales** permite distinguir comportamientos y evita conclusiones sesgadas.
+    - La validación cruzada con fuentes externas (como Power BI) refuerza la confianza en los resultados y muestra el valor agregado del clustering.
+- **Estructura y organización**
+    - Aprendí a **organizar un proyecto de análisis en carpetas estándar** (`data/raw`, `data/processed`, `notebooks`, `reports`, etc.), lo que hace más fácil mantener orden y trazabilidad.
+    - Entendí la importancia de usar `.gitignore` para que los archivos sensibles o demasiado pesados no se suban al repositorio.
+    - GitHub funciona como repositorio **técnico**, mientras que Notion cumple el rol narrativo y visual: juntos hacen posible comunicar tanto a reclutadores como a directivos no técnicos.
+- **Proceso de trabajo**
+    - No basta con obtener métricas: hay que **traducir resultados en storytelling**, con imágenes, captions y callouts que transmitan el valor a quienes no son técnicos.
+    - El **worklog diario** resultó ser una herramienta muy útil para documentar avances, decisiones y pendientes de forma continua.
+    - El aprendizaje no fue solo de Python o modelos, sino de cómo **documentar y versionar un proyecto de punta a punta**, con disciplina y claridad.
+
+---
+
+<aside>
+⚙
+
+> “No basta con analizar; hay que contar la historia de manera que otros la entiendan”.
+> 
+</aside>
+
+---
+
+### 9) Conclusiones
+
+El proyecto no solo permitió segmentar pacientes y descubrir patrones clínicos relevantes, sino también sentar las bases de un **proceso de análisis reproducible y documentado**.
+
+- Los clusters obtenidos mostraron perfiles diferenciados con **implicancias prácticas directas** en comunicación, fidelización y gestión comercial.
+- La validación contra fuentes oficiales aseguró que los resultados fueran consistentes y confiables.
+- La combinación de **herramientas técnicas (Python, GitHub)** con **herramientas narrativas (Notion, infografías, storytelling)** demostró que los análisis pueden traducirse en propuestas claras y accionables.
+
+En síntesis: este trabajo dejó no solo un resultado analítico, sino también una metodología replicable para futuros proyectos de la clínica o de otros contextos.
