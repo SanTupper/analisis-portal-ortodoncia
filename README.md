@@ -141,8 +141,22 @@ NB-01 → NB-02 → (opcional: NB-06, NB-05) → NB-03 → NB-04
 
 ---
 
-- ⚠️ **Privacidad**: `data/` está en .gitignore. Este repositorio no incluye datos reales.  
-- ℹ️ ***Los reportes técnicos se versionan (CSV en `/reports/entregables/`); los documentos ejecutivos en `/docs/`.***
+### 📑 Docs rápidos
+
+Para revisión rápida de los entregables narrativos:
+
+- [Playbook Global (PDF)](docs/playbook_global.pdf) — síntesis completa del análisis.
+- [Guía de Mejora de Datos (PDF)](docs/Guía%20de%20Mejora%20de%20Datos%20—%20Portal%20Ortodoncia.pdf) — propuestas de estandarización y calidad.
+- [Insights ejecutivos por cluster (NB-04, PDF)](docs/Insights%20ejecutivos%20por%20cluster%20(NB-04).pdf) — resumen enfocado en perfiles y acciones.
+- [Infografía de estrategias por cluster (PNG)](docs/Infografía_clusters.png) — pieza visual rápida para presentaciones.
+
+> ℹ️ Todos los documentos están en `/docs/`; los CSV técnicos asociados en `/reports/entregables/`.
+
+---
+
+⚠️ **Privacidad**: `data/` está en .gitignore. Este repositorio no incluye datos reales. 
+
+ℹ️ Los reportes técnicos se versionan (CSV en `/reports/entregables/`); los documentos ejecutivos en `/docs/`.
 
 ### 📚 Documentación
 
